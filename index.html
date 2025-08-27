@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SheerID 学生验证</title>
+    <script src="https://js.hcaptcha.com/1/api.js" async defer></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            padding: 40px;
+            max-width: 500px;
+            width: 100%;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            color: #333;
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            color: #666;
+            font-size: 16px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 500;
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e1e5e9;
+            border-radius: 10px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .file-upload {
+            position: relative;
+            display: inline-block;
+            width: 100%;
+        }
+
+        .file-upload input[type=file] {
+            position: absolute;
+            opacity: 0;
+            width: 100%;
+            height: 100%;
+            cursor: pointer;
+        }
+
+        .file-upload-label {
+            display: block;
+            padding: 12px 16px;
+            border: 2px dashed #e1e5e9;
+            border-radius: 10px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            background: #f8f9fa;
+        }
+
+        .file-upload-label:hover {
+            border-color: #667eea;
+            background: #f0f2ff;
+        }
+
+        .file-preview {
+            margin-top: 10px;
+            text-align: center;
+        }
+
+        .file-preview img {
+            max-width: 200px;
+            max-height: 200px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+
+        .submit-btn {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s;
+            margin-top: 20px;
+        }
+
+        .submit-btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .submit-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        .loading .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .log-container {
+            margin-top: 20px;
+            max-height: 300px;
+            overflow-y: auto;
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 15px;
+            display: none;
+        }
+
+        .log-entry {
+            margin-bottom: 5px;
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-size: 14px;
+            font-family: monospace;
+        }
+
+        .log-debug { background: #e9ecef; color: #6c757d; }
+        .log-info { background: #d1ecf1; color: #0c5460; }
+        .log-success { background: #d4edda; color: #155724; }
+        .log-warning { background: #fff3cd; color: #856404; }
+        .log-error { background: #f8d7da; color: #721c24; }
+
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 10px;
+            display: none;
+        }
+
+        .result.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .result.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .hcaptcha-container {
+            margin: 20px 0;
+            display: flex;
+            justify-content: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎓 学生身份验证</h1>
+            <p>通过 SheerID 验证您的学生身份</p>
+        </div>
+
+        <form id="verificationForm">
+            <div class="form-group">
+                <label for="firstName">名字 *</label>
+                <input type="text" id="firstName" name="firstName" required>
+            </div>
+
+            <div class="form-group">
+                <label for="lastName">姓氏 *</label>
+                <input type="text" id="lastName" name="lastName" required>
+            </div>
+
+            <div class="form-group">
+                <label for="email">邮箱地址 *</label>
+                <input type="email" id="email" name="email" required>
+            </div>
+
+            <div class="form-group">
+                <label for="birthDate">出生日期 *</label>
+                <input type="date" id="birthDate" name="birthDate" required>
+            </div>
+
+            <div class="form-group">
+                <label for="school">学校 *</label>
+                <select id="school" name="school" required>
+                    <option value="">请选择学校</option>
+                    <option value="1953">Massachusetts Institute of Technology (Cambridge, MA)</option>
+                    <option value="2089">Logan University (Chesterfield, MO)</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="studentCard">学生证照片 *</label>
+                <div class="file-upload">
+                    <input type="file" id="studentCard" name="studentCard" accept="image/*" required>
+                    <label for="studentCard" class="file-upload-label">
+                        📷 点击上传学生证照片 (最大 1MB)
+                    </label>
+                </div>
+                <div class="file-preview" id="filePreview"></div>
+            </div>
+
+            <!-- hCaptcha 验证 -->
+            <div class="hcaptcha-container">
+                <div class="h-captcha" data-sitekey="10000000-ffff-ffff-ffff-000000000001"></div>
+            </div>
+
+            <button type="submit" class="submit-btn" id="submitBtn">
+                🚀 开始验证
+            </button>
+        </form>
+
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p>正在处理验证请求，请稍候...</p>
+        </div>
+
+        <div class="result" id="result"></div>
+
+        <div class="log-container" id="logContainer">
+            <h4>验证日志：</h4>
+            <div id="logs"></div>
+        </div>
+    </div>
+
+    <script>
+        const WORKER_URL = 'https://sheerid-verification-worker.energygod29.workers.dev';
+        
+        // 文件预览
+        document.getElementById('studentCard').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            const preview = document.getElementById('filePreview');
+            const label = document.querySelector('.file-upload-label');
+            
+            if (file) {
+                // 检查文件大小
+                if (file.size > 1024 * 1024) {
+                    alert('文件大小不能超过 1MB');
+                    e.target.value = '';
+                    return;
+                }
+                
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    preview.innerHTML = `<img src="${e.target.result}" alt="学生证预览">`;
+                    label.textContent = `✅ 已选择: ${file.name}`;
+                };
+                reader.readAsDataURL(file);
+            } else {
+                preview.innerHTML = '';
+                label.textContent = '📷 点击上传学生证照片 (最大 1MB)';
+            }
+        });
+
+        // 生成随机验证ID
+        function generateVerificationId() {
+            return 'verify_' + Math.random().toString(36).substr(2, 9) + '_' + Date.now();
+        }
+
+        // 显示日志
+        function addLog(message, type = 'debug') {
+            const logsContainer = document.getElementById('logs');
+            const logContainer = document.getElementById('logContainer');
+            
+            const logEntry = document.createElement('div');
+            logEntry.className = `log-entry log-${type}`;
+            logEntry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            
+            logsContainer.appendChild(logEntry);
+            logContainer.style.display = 'block';
+            logContainer.scrollTop = logContainer.scrollHeight;
+        }
+
+        // 显示结果
+        function showResult(message, isSuccess = false) {
+            const result = document.getElementById('result');
+            result.textContent = message;
+            result.className = `result ${isSuccess ? 'success' : 'error'}`;
+            result.style.display = 'block';
+        }
+
+        // 表单提交
+        document.getElementById('verificationForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const submitBtn = document.getElementById('submitBtn');
+            const loading = document.getElementById('loading');
+            const result = document.getElementById('result');
+            const logs = document.getElementById('logs');
+            
+            // 重置状态
+            result.style.display = 'none';
+            logs.innerHTML = '';
+            document.getElementById('logContainer').style.display = 'none';
+            
+            // 获取 hCaptcha token
+            const hcaptchaResponse = hcaptcha.getResponse();
+            if (!hcaptchaResponse) {
+                showResult('请完成人机验证');
+                return;
+            }
+            
+            // 显示加载状态
+            submitBtn.disabled = true;
+            loading.style.display = 'block';
+            
+            try {
+                addLog('开始准备验证数据...', 'info');
+                
+                // 准备表单数据
+                const formData = new FormData();
+                formData.append('firstName', document.getElementById('firstName').value);
+                formData.append('lastName', document.getElementById('lastName').value);
+                formData.append('email', document.getElementById('email').value);
+                formData.append('birthDate', document.getElementById('birthDate').value);
+                formData.append('verificationId', generateVerificationId());
+                formData.append('schoolId', document.getElementById('school').value);
+                formData.append('studentCard', document.getElementById('studentCard').files[0]);
+                formData.append('hcaptchaToken', hcaptchaResponse);
+                
+                addLog('发送验证请求到服务器...', 'info');
+                
+                // 发送请求
+                const response = await fetch(`${WORKER_URL}/api/verify`, {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const data = await response.json();
+                
+                // 显示服务器日志
+                if (data.logs) {
+                    data.logs.forEach(log => {
+                        addLog(log.message, log.type);
+                    });
+                }
+                
+                // 显示结果
+                if (data.success) {
+                    showResult('🎉 验证成功！您的学生身份已通过验证。', true);
+                    if (data.redirectUrl) {
+                        addLog(`重定向URL: ${data.redirectUrl}`, 'success');
+                    }
+                } else {
+                    showResult(`❌ 验证失败: ${data.message}`);
+                }
+                
+            } catch (error) {
+                addLog(`请求失败: ${error.message}`, 'error');
+                showResult(`网络错误: ${error.message}`);
+            } finally {
+                // 恢复状态
+                submitBtn.disabled = false;
+                loading.style.display = 'none';
+                hcaptcha.reset();
+            }
+        });
+
+        // 页面加载完成后的初始化
+        window.addEventListener('load', function() {
+            addLog('页面加载完成，准备就绪', 'success');
+            
+            // 测试 Worker 连接
+            fetch(`${WORKER_URL}/health`)
+                .then(response => response.json())
+                .then(data => {
+                    addLog('✅ Worker 服务连接正常', 'success');
+                })
+                .catch(error => {
+                    addLog('❌ Worker 服务连接失败', 'error');
+                });
+        });
+    </script>
+</body>
+</html>
