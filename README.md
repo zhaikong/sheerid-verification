@@ -1,3 +1,5 @@
+
+
 # SheerID 学生身份验证服务
 
 🎓 一个基于 Cloudflare Workers 的 SheerID 学生身份验证服务，提供完整的前端界面和后端 API。
@@ -68,6 +70,8 @@ Worker 配置文件位于 `wrangler.toml`，主要配置项：
 - `PROGRAM_ID`: SheerID 程序 ID
 - `SHEERID_BASE_URL`: SheerID API 基础 URL
 - `MAX_FILE_SIZE`: 最大文件上传大小限制
+
+**注意**：部署前请在 `index.html` 中搜索 `data-sitekey`，将默认占位符 `10000000-ffff-ffff-ffff-000000000001` 替换为您在 hCaptcha 官网申请的站点密钥。
 
 ## 📄 许可证
 
